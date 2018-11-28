@@ -1,4 +1,4 @@
 include README.md
-recursive-include octoprint_juliafirmwareupdater/templates *
-recursive-include octoprint_juliafirmwareupdater/translations *
-recursive-include octoprint_juliafirmwareupdater/static *
+recursive-include octoprint_JuliaFirmwareUpdater/templates *
+recursive-include octoprint_JuliaFirmwareUpdater/translations *
+recursive-include octoprint_JuliaFirmwareUpdater/static *

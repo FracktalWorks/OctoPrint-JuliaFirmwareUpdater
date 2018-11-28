@@ -484,7 +484,7 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
     #~~ Asset API
 
     def get_assets(self):
-        return dict(js=["js/firmwareupdater.js"])
+        return dict(js=["js/juliafirmwareupdater.js"])
 
     #~~ Extra methods
 

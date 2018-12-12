@@ -1,21 +1,27 @@
 $(function() {
-    function FirmwareUpdaterViewModel(parameters) {
+    function JuliaFirmwareUpdaterViewModel(parameters) {
+        var PLUGIN_URL = PLUGIN_BASEURL + "JuliaFirmwareUpdater/";
+        var TITLE = "Julia Firmware Updater";
+        
         var self = this;
 
-        self.settingsViewModel = parameters[0];
-        self.loginState = parameters[1];
-        self.connection = parameters[2];
-        self.printerState = parameters[3];
+        self.VM_settings = parameters[0];
+        self.VM_loginState = parameters[1];
+        self.VM_connection = parameters[2];
+        self.VM_printerState = parameters[3];
+
+        self.configurationDialog = undefined;
+        self.popup = undefined;
+
+        // Landing page
+        self.flashPort = ko.observable(undefined);
+        self.hardwareNotReady = ko.observable("");
 
         // General settings
         self.configFlashMethod = ko.observable();
-        self.showAdvancedConfig = ko.observable(false);
         self.showAvrdudeConfig = ko.observable(false);
         self.showBossacConfig = ko.observable(false);
-        self.showPostflashConfig = ko.observable(false);
         self.configEnablePostflashGcode = ko.observable();
-        self.configPostflashGcode = ko.observable();
-        self.configDisableBootloaderCheck = ko.observable();
 
         // Config settings for avrdude
         self.configAvrdudeMcu = ko.observable();
@@ -49,37 +55,12 @@ $(function() {
             return self.bossacPathBroken() || self.bossacPathOk();
         });
 
-        self.flashPort = ko.observable(undefined);
-
-        self.firmwareFileName = ko.observable(undefined);
-        self.firmwareFileURL = ko.observable(undefined);
-
-        self.alertMessage = ko.observable("");
-        self.alertType = ko.observable("alert-warning");
-        self.showAlert = ko.observable(false);
-        self.missingParamToFlash = ko.observable(false);
-        self.progressBarText = ko.observable();
-        self.isBusy = ko.observable(false);
-        self.fileFlashButtonText = ko.observable("");
-        self.urlFlashButtonText = ko.observable("");
-
-        self.selectFilePath = undefined;
-        self.configurationDialog = undefined;
-
-        self.inSettingsDialog = false;
-
-        self.connection.selectedPort.subscribe(function(value) {
-            if (value === undefined) return;
-            self.flashPort(value);
+        // self.VM_connection.selectedPort.subscribe(function(value) {
+        self.VM_settings.serial_port.subscribe(function(value) {
+            // if (value === undefined) return;
+            // self.flashPort(value);
+            self.getHardwareState();
         });
-
-        self.toggleAdvancedConfig = function(){
-            self.showAdvancedConfig(!self.showAdvancedConfig());
-        }
-
-        self.togglePostflashConfig = function(){
-            self.showPostflashConfig(!self.showPostflashConfig());
-        }
 
         self.configFlashMethod.subscribe(function(value) {
             if(value == 'avrdude') {
@@ -92,236 +73,187 @@ $(function() {
                 self.showBossacConfig(false);
                 self.showAvrdudeConfig(false);
             }
-         });
+        });
 
-         self.firmwareFileName.subscribe(function(value) {
-            if (!self.settingsViewModel.settings.plugins.firmwareupdater.disable_bootloadercheck()) {
-                if (self._checkForBootloader(value)) {
-                    self.bootloaderWarningDialog.modal();
-                }
-            }
-         });
-
-        self.onStartup = function() {
-            self.selectFilePath = $("#settings_firmwareupdater_selectFilePath");
-            self.configurationDialog = $("#settings_plugin_firmwareupdater_configurationdialog");
-            self.bootloaderWarningDialog = $("#BootLoaderWarning");
-
-            self.selectFilePath.fileupload({
-                dataType: "hex",
-                maxNumberOfFiles: 1,
-                autoUpload: false,
-                add: function(e, data) {
-                    if (data.files.length === 0) {
-                        return false;
+        self.getHardwareState = function() {
+            $.ajax({
+                url: PLUGIN_URL + "hardware/state",
+                type: "GET",
+                contentType: "application/json",
+                success: function(response) {
+                    console.log(response);
+                    if (response) {
+                        if (response.hasOwnProperty('port'))
+                            self.flashPort(response.port);
+                        if (response.hasOwnProperty('notready'))
+                            self.hardwareNotReady(response.notready);
+                    } else {
+                        self.flashPort(undefined);
+                        self.hardwareNotReady("State unknown!");
                     }
-                    self.hexData = data;
-                    self.firmwareFileName(data.files[0].name);
+                },
+                error: function() {
+                    self.flashPort(undefined);
+                    self.hardwareNotReady("State unknown!");
                 }
             });
         };
 
-        self._checkIfReadyToFlash = function(source) {
-            var alert = undefined;
-
-            if (!self.loginState.isAdmin()){
-                alert = gettext("You need administrator privileges to flash firmware.");
-            }
-
-            if (self.printerState.isPrinting() || self.printerState.isPaused()){
-                alert = gettext("Printer is printing. Please wait for the print to be finished.");
-            }
-
-            if (!self.settingsViewModel.settings.plugins.firmwareupdater.flash_method()){
-                alert = gettext("The flash method is not selected.");
-            }
-
-            if (self.settingsViewModel.settings.plugins.firmwareupdater.flash_method() == "avrdude" && !self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_avrmcu()) {
-                alert = gettext("The AVR MCU type is not selected.");
-            }
-
-            if (self.settingsViewModel.settings.plugins.firmwareupdater.flash_method() == "avrdude" && !self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_path()) {
-                alert = gettext("The avrdude path is not configured.");
-            }
-
-            if (self.settingsViewModel.settings.plugins.firmwareupdater.flash_method() == "avrdude" && !self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_programmer()) {
-                alert = gettext("The AVR programmer is not selected.");
-            }
-
-            if (self.settingsViewModel.settings.plugins.firmwareupdater.flash_method() == "bossac" && !self.settingsViewModel.settings.plugins.firmwareupdater.bossac_path()) {
-                alert = gettext("The bossac path is not configured.");
-            }
-
-            if (!self.flashPort()) {
-                alert = gettext("The printer port is not selected.");
-            }
-
-            if (source === "file" && !self.firmwareFileName()) {
-                alert = gettext("Firmware file is not specified");
-            } else if (source === "url" && !self.firmwareFileURL()) {
-                alert = gettext("Firmware URL is not specified");
-            }
-
-            if (alert !== undefined) {
-                self.alertType("alert-warning");
-                self.alertMessage(alert);
-                self.showAlert(true);
-                return false;
-            } else {
-                self.alertMessage(undefined);
-                self.showAlert(false);
-            }
-
-            return true;
-        };
-
-        self._checkForBootloader = function(filename) {
-            if (filename.search(/bootloader/i) > -1) {
-                return true;
-            } else {
-                return false;
-            }
-        }
-
-        self.returnTrue = function() {
-            return true;
-        }
-
-        self.returnFalse = function() {
-            return false;
-        }
-
-        self.startFlashFromFile = function() {
-            if (!self._checkIfReadyToFlash("file")) {
-                return;
-            }
-
-            self.progressBarText("Flashing firmware...");
-            self.isBusy(true);
-            self.showAlert(false);
-
-            self.hexData.formData = {
-                port: self.flashPort()
-            };
-            self.hexData.submit();
-        };
-
-        self.startFlashFromURL = function() {
-            if (!self._checkIfReadyToFlash("url")) {
-                return;
-            }
-
-            self.isBusy(true);
-            self.showAlert(false);
-            self.progressBarText("Flashing firmware...");
-
+        self.checkUpdate = function() {
             $.ajax({
-                url: PLUGIN_BASEURL + "firmwareupdater/flash",
-                type: "POST",
-                dataType: "json",
-                data: JSON.stringify({
-                    port: self.flashPort(),
-                    url: self.firmwareFileURL()
-                }),
-                contentType: "application/json; charset=UTF-8"
-            })
+                url: PLUGIN_URL + "update/check",
+                type: "GET",
+                contentType: "text/plain"
+            });
+        };
+
+        self.startUpdate = function() {
+            $.ajax({
+                url: PLUGIN_URL + "update/start",
+                type: "GET",
+                contentType: "text/plain"
+            });
+        };
+
+        self.startReflash = function() {
+            $.ajax({
+                url: PLUGIN_URL + "update/reflash",
+                type: "GET",
+                contentType: "text/plain"
+            });
+        };
+
+        self._hardwareNotReady = function() {
+            if (!self.Config.board_shortcode())
+                return gettext("Hardware not defined!");
+
+            if (self.VM_printerState.isPrinting() || self.VM_printerState.isPaused())
+                return gettext("Print in progress!");
+
+            if (!self.Config.flash_method())
+                return gettext("Flash method undefined!");
+
+            if (self.Config.flash_method() == "avrdude" && !self.Config.avrdude_avrmcu())
+                return gettext("AVR MCU undefined!");
+
+            if (self.Config.flash_method() == "avrdude" && !self.Config.avrdude_path())
+                return gettext("avrdude undefined!");
+
+            if (self.Config.flash_method() == "avrdude" && !self.Config.avrdude_programmer())
+                return gettext("AVR programmer undefined!");
+
+            if (self.Config.flash_method() == "bossac" && !self.Config.bossac_path())
+                return gettext("bossac undefined!");
+
+            if (!self.flashPort() || self.flashPort() == 'VIRTUAL')
+                return gettext("Hardware port undefined!");
+
+            return false;
         };
 
         self.onDataUpdaterPluginMessage = function(plugin, data) {
-            if (plugin !== "firmwareupdater") {
+            if (plugin !== "JuliaFirmwareUpdater") {
                 return;
             }
-
-            var message;
+            console.log(data);
+            // var message;
 
             if (data.type === "status") {
                 switch (data.status) {
+                    case "update_check": {
+                        self.showPopup(data.subtype, TITLE, data.message);
+                        break;
+                    }
+                    case "update_start": {
+                        self.showPopup(data.subtype, TITLE, data.message);
+                        break;
+                    }
+                    // case "hardwarenotready": {
+                    //     console.log(data.message);
+                    //     self.hardwareNotReady(data.message);
+                    //     break;
+                    // }
                     case "flasherror": {
-                        if (data.message) {
-                            message = gettext(data.message);
-                        } else {
-                            message = gettext("Unknown error");
-                        }
+                        // if (!data.message) 
+                        // var message = (data.message ? data.message : gettext("Unknown error"));
 
-                        if (data.subtype) {
-                            switch (data.subtype) {
-                                case "busy": {
-                                    message = gettext("Printer is busy.");
-                                    break;
-                                }
-                                case "port": {
-                                    message = gettext("Printer port is not available.");
-                                    break;
-                                }
-                                case "method": {
-                                    message = gettext("Flash method is not fully configured.");
-                                    break;
-                                }
-                                case "hexfile": {
-                                    message = gettext("Cannot read file to flash.");
-                                    break;
-                                }
-                                case "already_flashing": {
-                                    message = gettext("Already flashing.");
-                                }
-                            }
-                        }
-
-                        self.showPopup("error", gettext("Flashing failed"), message);
-                        self.isBusy(false);
-                        self.showAlert(false);
-                        self.firmwareFileName("");
-                        self.firmwareFileURL("");
+                        // if (data.subtype) {
+                        //     switch (data.subtype) {
+                        //         case "busy": {
+                        //             message = gettext("Printer is busy.");
+                        //             break;
+                        //         }
+                        //         case "port": {
+                        //             message = gettext("Printer port is not available.");
+                        //             break;
+                        //         }
+                        //         case "method": {
+                        //             message = gettext("Flash method is not fully configured.");
+                        //             break;
+                        //         }
+                        //         case "hexfile": {
+                        //             message = gettext("Cannot read file to flash.");
+                        //             break;
+                        //         }
+                        //         case "already_flashing": {
+                        //             message = gettext("Already flashing.");
+                        //         }
+                        //     }
+                        // }
+                        if (data.message)
+                            self.showPopup("error", "Flashing failed", data.message);
                         break;
                     }
                     case "success": {
-                        self.showPopup("success", gettext("Flashing successful"), "");
-                        self.isBusy(false);
-                        self.showAlert(false);
-                        self.firmwareFileName("");
-                        self.firmwareFileURL("");
+                        self.showPopup("success", TITLE, data.message);
                         break;
                     }
                     case "progress": {
-                        if (data.subtype) {
-                            switch (data.subtype) {
-                                case "disconnecting": {
-                                    message = gettext("Disconnecting printer...");
-                                    break;
-                                }
-                                case "startingflash": {
-                                    self.isBusy(true);
-                                    message = gettext("Starting flash...");
-                                    break;
-                                }
-                                case "writing": {
-                                    message = gettext("Writing memory...");
-                                    break;
-                                }
-                                case "erasing": {
-                                    message = gettext("Erasing memory...");
-                                    break;
-                                }
-                                case "verifying": {
-                                    message = gettext("Verifying memory...");
-                                    break;
-                                }
-                                case "reconnecting": {
-                                    message = gettext("Reconnecting to printer...");
-                                    break;
-                                }
-                            }
-                        }
+                        // if (data.subtype) {
+                        //     switch (data.subtype) {
+                        //         case "disconnecting": {
+                        //             message = gettext("Disconnecting printer...");
+                        //             break;
+                        //         }
+                        //         case "startingflash": {
+                        //             // self.isBusy(true);
+                        //             message = gettext("Starting flash...");
+                        //             break;
+                        //         }
+                        //         case "writing": {
+                        //             message = gettext("Writing memory...");
+                        //             break;
+                        //         }
+                        //         case "erasing": {
+                        //             message = gettext("Erasing memory...");
+                        //             break;
+                        //         }
+                        //         case "verifying": {
+                        //             message = gettext("Verifying memory...");
+                        //             break;
+                        //         }
+                        //         // case "reconnecting": {
+                        //         //     message = gettext("Reconnecting to printer...");
+                        //         //     break;
+                        //         // }
+                        //     }
+                        // }
 
-                        if (message) {
-                            self.progressBarText(message);
-                        }
+                        if (data.message)
+                            self.showPopup("info", TITLE, data.message);
                         break;
                     }
                     case "info": {
-                        self.alertType("alert-info");
-                        self.alertMessage(data.status_description);
-                        self.showAlert(true);
+                        // self.alertType("alert-info");
+                        // self.alertMessage(data.status_description);
+                        // self.showAlert(true);
+                        if (data.message)
+                            self.showPopup("info", TITLE, data.message);
+                        break;
+                    }
+                    case "error": {
+                        if (data.message)
+                            self.showPopup("error", TITLE, data.message);
                         break;
                     }
                 }
@@ -330,44 +262,37 @@ $(function() {
 
         self.showPluginConfig = function() {
             // Load the general settings
-            self.configFlashMethod(self.settingsViewModel.settings.plugins.firmwareupdater.flash_method());
-            if(self.settingsViewModel.settings.plugins.firmwareupdater.enable_postflash_gcode() != 'false') {
-                self.configEnablePostflashGcode(self.settingsViewModel.settings.plugins.firmwareupdater.enable_postflash_gcode());
-            }
-            self.configPostflashGcode(self.settingsViewModel.settings.plugins.firmwareupdater.postflash_gcode());
-            if(self.settingsViewModel.settings.plugins.firmwareupdater.disable_bootloadercheck() != 'false') {
-                self.configDisableBootloaderCheck(self.settingsViewModel.settings.plugins.firmwareupdater.disable_bootloadercheck());
-            }
+            self.configFlashMethod(self.Config.flash_method());
 
             // Load the avrdude settings
-            self.configAvrdudePath(self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_path());
-            self.configAvrdudeConfigFile(self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_conf());
-            self.configAvrdudeMcu(self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_avrmcu());
-            self.configAvrdudeProgrammer(self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_programmer());
-            self.configAvrdudeBaudRate(self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_baudrate());
-            if(self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_disableverify() != 'false') {
-                self.configAvrdudeDisableVerification(self.settingsViewModel.settings.plugins.firmwareupdater.avrdude_disableverify());
+            self.configAvrdudePath(self.Config.avrdude_path());
+            self.configAvrdudeConfigFile(self.Config.avrdude_conf());
+            self.configAvrdudeMcu(self.Config.avrdude_avrmcu());
+            self.configAvrdudeProgrammer(self.Config.avrdude_programmer());
+            self.configAvrdudeBaudRate(self.Config.avrdude_baudrate());
+            if(self.Config.avrdude_disableverify() != 'false') {
+                self.configAvrdudeDisableVerification(self.Config.avrdude_disableverify());
             }
 
             // Load the bossac settings
-            self.configBossacPath(self.settingsViewModel.settings.plugins.firmwareupdater.bossac_path());
-            self.configBossacDisableVerification(self.settingsViewModel.settings.plugins.firmwareupdater.bossac_disableverify());
+            self.configBossacPath(self.Config.bossac_path());
+            self.configBossacDisableVerification(self.Config.bossac_disableverify());
 
             self.configurationDialog.modal();
         };
 
         self.onConfigClose = function() {
-            self._saveConfig();
+            // self._saveConfig();
 
             self.configurationDialog.modal("hide");
-            self.alertMessage(undefined);
-            self.showAlert(false);
+            // self.alertMessage(undefined);
+            // self.showAlert(false);
         };
 
         self._saveConfig = function() {
             var data = {
                 plugins: {
-                    firmwareupdater: {
+                    JuliaFirmwareUpdater: {
                         flash_method: self.configFlashMethod(),
                         avrdude_path: self.configAvrdudePath(),
                         avrdude_conf: self.configAvrdudeConfigFile(),
@@ -376,10 +301,7 @@ $(function() {
                         avrdude_baudrate: self.configAvrdudeBaudRate(),
                         avrdude_disableverify: self.configAvrdudeDisableVerification(),
                         bossac_path: self.configBossacPath(),
-                        bossac_disableverify: self.configBossacDisableVerification(),
-                        postflash_gcode: self.configPostflashGcode(),
-                        enable_postflash_gcode: self.configEnablePostflashGcode(),
-                        disable_bootloadercheck: self.configDisableBootloaderCheck()
+                        bossac_disableverify: self.configBossacDisableVerification()
                     }
                 }
             };
@@ -482,16 +404,7 @@ $(function() {
                     self.avrdudeConfPathOk(response.result);
                     self.avrdudeConfPathBroken(!response.result);
                 }
-            })
-        };
-
-        self.onSettingsShown = function() {
-            self.inSettingsDialog = true;
-        };
-
-        self.onSettingsHidden = function() {
-            self.inSettingsDialog = false;
-            self.showAlert(false);
+            });
         };
 
         // Popup Messages
@@ -513,11 +426,29 @@ $(function() {
                 self.popup.remove();
             }
         };
+
+        self.onStartup = function() {
+            self.configurationDialog = $("#settings_jfu_config");
+        };
+
+        self.onBeforeBinding = function() {
+            console.log('Binding JuliaFirmwareUpdaterViewModel')
+
+            self.Config = self.VM_settings.settings.plugins.JuliaFirmwareUpdater;
+
+            console.log(self.Config);
+            console.log(self.VM_printerState);
+        };
+
+        self.onSettingsShown = function() {
+            // self.hardwareNotReady(self._hardwareNotReady());
+            self.getHardwareState();
+        }
     }
 
     OCTOPRINT_VIEWMODELS.push([
-        FirmwareUpdaterViewModel,
+        JuliaFirmwareUpdaterViewModel,
         ["settingsViewModel", "loginStateViewModel", "connectionViewModel", "printerStateViewModel"],
-        [document.getElementById("settings_plugin_firmwareupdater")]
+        ["#settings_plugin_JuliaFirmwareUpdater"]
     ]);
 });

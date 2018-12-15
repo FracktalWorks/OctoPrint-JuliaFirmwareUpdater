@@ -123,34 +123,6 @@ $(function() {
             });
         };
 
-        self._hardwareNotReady = function() {
-            if (!self.Config.board_shortcode())
-                return gettext("Hardware not defined!");
-
-            if (self.VM_printerState.isPrinting() || self.VM_printerState.isPaused())
-                return gettext("Print in progress!");
-
-            if (!self.Config.flash_method())
-                return gettext("Flash method undefined!");
-
-            if (self.Config.flash_method() == "avrdude" && !self.Config.avrdude_avrmcu())
-                return gettext("AVR MCU undefined!");
-
-            if (self.Config.flash_method() == "avrdude" && !self.Config.avrdude_path())
-                return gettext("avrdude undefined!");
-
-            if (self.Config.flash_method() == "avrdude" && !self.Config.avrdude_programmer())
-                return gettext("AVR programmer undefined!");
-
-            if (self.Config.flash_method() == "bossac" && !self.Config.bossac_path())
-                return gettext("bossac undefined!");
-
-            if (!self.flashPort() || self.flashPort() == 'VIRTUAL')
-                return gettext("Hardware port undefined!");
-
-            return false;
-        };
-
         self.onDataUpdaterPluginMessage = function(plugin, data) {
             if (plugin !== "JuliaFirmwareUpdater") {
                 return;
@@ -174,32 +146,6 @@ $(function() {
                     //     break;
                     // }
                     case "flasherror": {
-                        // if (!data.message) 
-                        // var message = (data.message ? data.message : gettext("Unknown error"));
-
-                        // if (data.subtype) {
-                        //     switch (data.subtype) {
-                        //         case "busy": {
-                        //             message = gettext("Printer is busy.");
-                        //             break;
-                        //         }
-                        //         case "port": {
-                        //             message = gettext("Printer port is not available.");
-                        //             break;
-                        //         }
-                        //         case "method": {
-                        //             message = gettext("Flash method is not fully configured.");
-                        //             break;
-                        //         }
-                        //         case "hexfile": {
-                        //             message = gettext("Cannot read file to flash.");
-                        //             break;
-                        //         }
-                        //         case "already_flashing": {
-                        //             message = gettext("Already flashing.");
-                        //         }
-                        //     }
-                        // }
                         if (data.message)
                             self.showPopup("error", "Flashing failed", data.message);
                         break;
@@ -209,44 +155,11 @@ $(function() {
                         break;
                     }
                     case "progress": {
-                        // if (data.subtype) {
-                        //     switch (data.subtype) {
-                        //         case "disconnecting": {
-                        //             message = gettext("Disconnecting printer...");
-                        //             break;
-                        //         }
-                        //         case "startingflash": {
-                        //             // self.isBusy(true);
-                        //             message = gettext("Starting flash...");
-                        //             break;
-                        //         }
-                        //         case "writing": {
-                        //             message = gettext("Writing memory...");
-                        //             break;
-                        //         }
-                        //         case "erasing": {
-                        //             message = gettext("Erasing memory...");
-                        //             break;
-                        //         }
-                        //         case "verifying": {
-                        //             message = gettext("Verifying memory...");
-                        //             break;
-                        //         }
-                        //         // case "reconnecting": {
-                        //         //     message = gettext("Reconnecting to printer...");
-                        //         //     break;
-                        //         // }
-                        //     }
-                        // }
-
                         if (data.message)
                             self.showPopup("info", TITLE, data.message);
                         break;
                     }
                     case "info": {
-                        // self.alertType("alert-info");
-                        // self.alertMessage(data.status_description);
-                        // self.showAlert(true);
                         if (data.message)
                             self.showPopup("info", TITLE, data.message);
                         break;
@@ -305,7 +218,7 @@ $(function() {
                     }
                 }
             };
-            self.settingsViewModel.saveData(data);
+            self.VM_settings.saveData(data);
         };
 
         self.onConfigHidden = function() {
@@ -441,7 +354,6 @@ $(function() {
         };
 
         self.onSettingsShown = function() {
-            // self.hardwareNotReady(self._hardwareNotReady());
             self.getHardwareState();
         }
     }

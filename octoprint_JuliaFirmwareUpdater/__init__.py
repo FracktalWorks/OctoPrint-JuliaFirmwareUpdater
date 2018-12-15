@@ -46,13 +46,18 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
         if task == "check":
             status = self._update_check_inv()
             # self._logger.info(status)
-            self._send_status("update_check",
-                              subtype="success" if not status else "error",
-                              message="Updates found" if not status else status)
+            if status == 0:
+                subtype = "info"
+                message = "No updates found"
+            elif status == -1:
+                subtype = "success"
+                message = "Updates found!"
+            else:
+                subtype = "error"
+                message = status
+            self._send_status("update_check", subtype=subtype, message=message)
         elif task == "start" or task == "reflash":
-            status = self._update_start_inv(reflash=(task == "reflash"))
-            # if not status:
-            #     return ''
+            status = self._flash_firmware_inv(reflash=(task == "reflash"))
             # self._logger.info(status)
             self._send_status("update_start",
                               subtype="success" if not status else "error",
@@ -104,7 +109,7 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
     '''
     def _update_check_inv(self):    # False if update found else reason
         state = self._hardware_not_ready()
-        if not state:
+        if state:
             return state
 
         try:
@@ -126,29 +131,8 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
             return "Update check failed"
 
         if common.update_present(self.version_board, self.version_repo):
-            return False
-        return "No updates found"
-
-    def _update_start_inv(self, reflash=False):    # False if update started else reason 
-        state = self._hardware_not_ready()
-        if state:
-            return state
-
-        port = self._get_hardware_port()
-        if not port:
-            return "Printer port is not available."
-
-        if not self.board_shortcode:
-            return "Board could not be determined"
-        if not self.version_board:
-            return "Installed firmware version could not be determined"
-        if not self.version_repo:
-            return "Previous update check failed"
-
-        # if reflash or common.update_present(self.version_board, self.version_repo):
-        url = common.get_hex_url(self.board_shortcode)
-        return self._flash_firmware_inv(port, url)
-        # return "No updates found"
+            return -1
+        return 0
 
     '''
     Hardware
@@ -214,59 +198,44 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
         self._settings.save()
         return True
 
-    def _flash_firmware_inv(self, printer_port, firmware_url):  # false if flash worker started else error
+    def _flash_firmware_inv(self, reflash=False):  # false if flash worker started else error
+        state = self._hardware_not_ready()
+        if state:
+            return state
+
         if self._flash_thread is not None:
-            # self._send_status("flasherror", subtype="already_flashing")
             self._logger.debug("Cannot flash firmware, already flashing")
             return "Already flashing firmware in another thread"
 
-        if self._printer.is_printing():
-            # error_message = "Cannot flash firmware, printer is busy"
-            # self._send_status("flasherror", subtype="busy", message=error_message)
-            self._logger.debug("Print in progress")
-            return "Print in progress!"
-
-        if not printer_port:
-            # error_message = "Cannot flash firmware, printer port is not specified"
-            # self._send_status("flasherror", subtype="port", message=error_message)
-            self._logger.debug("Port unavailable")
+        port = self._get_hardware_port()
+        if not port:
             return "Printer port is not available."
 
+        if not self.board_shortcode:
+            return "Board could not be determined"
+        if not self.version_board:
+            return "Installed firmware version could not be determined"
+        if not self.version_repo:
+            return "Previous update check failed"
+
+        if not (reflash or common.update_present(self.version_board, self.version_repo)):
+            return "No update present!"
+
+        firmware_url = common.get_hex_url(self.board_shortcode)
         if not firmware_url:
-            # error_message = "Cannot flash firmware, firmware URL is not specified"
-            # self._send_status("flasherror", subtype="hexfile", message=error_message)
             self._logger.debug("Invalid URL")
             return "Invalid firmware URL"
 
         method = self.flash_method
         if method in self._flash_prechecks:
             if not self._flash_prechecks[method]():
-                # error_message = "Cannot flash firmware, flash method {} is not fully configured".format(method)
-                # self._send_status("flasherror", subtype="method", message=error_message)
                 self._logger.debug("Flash method precheck failed")
                 return "Internal error"
 
-        # self._start_flash_process(method, printer_port, firmware_url)
-        # if self._flash_thread is not None:
-        #     # self._send_status("flasherror", subtype="already_flashing")
-        #     self._logger.debug("Cannot flash firmware, already flashing")
-        #     return "Already flashing firmware in another thread"
-
-        self._flash_thread = threading.Thread(target=self._flash_worker, args=(method, printer_port, firmware_url))
+        self._flash_thread = threading.Thread(target=self._flash_worker, args=(method, port, firmware_url))
         self._flash_thread.daemon = True
         self._flash_thread.start()
-        return "RIP"
-
-    # def _start_flash_process(self, method, printer_port, firmware_url):
-    #     if self._flash_thread is not None:
-    #         self._send_status("flasherror", subtype="already_flashing")
-    #         self._logger.debug("Cannot flash firmware, already flashing")
-    #         return False
-
-    #     self._flash_thread = threading.Thread(target=self._flash_worker, args=(method, printer_port, firmware_url))
-    #     self._flash_thread.daemon = True
-    #     self._flash_thread.start()
-    #     return True
+        return False
 
     def _flash_worker(self, method, printer_port, firmware_url):
         try:

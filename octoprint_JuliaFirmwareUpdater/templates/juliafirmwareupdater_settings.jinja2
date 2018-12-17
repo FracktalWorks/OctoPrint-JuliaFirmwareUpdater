@@ -23,6 +23,13 @@
             </div>
         </div>
 
+        <div class="control-group" data-bind="css: {error: hardwareNotReady, success: !hardwareNotReady()}">
+            <label class="control-label">{{ _('Machine Variant') }}</label>
+            <div class="controls">
+                <input type="text" class="input" data-bind="value: (!hardwareNotReady() ? getBoardName(Config.board_shortcode()) : 'Not detected')" readonly>
+            </div>
+        </div>
+
         <div class="control-group" data-bind="css: {error: !Config.version_board(), null: Config.version_board}">
             <label class="control-label">{{ _('Hardware Version') }}</label>
             <div class="controls">

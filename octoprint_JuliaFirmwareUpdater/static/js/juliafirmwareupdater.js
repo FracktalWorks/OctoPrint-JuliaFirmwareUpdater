@@ -75,6 +75,22 @@ $(function() {
             }
         });
 
+        self.getBoardName = function(shortcode) {
+            var names = {
+                RX: "Julia Advanced",
+                RE: "Julia Extended",
+                PS: "Julia Pro Single",
+                PD: "Julia Pro Dual"
+            };
+
+            console.log(shortcode + " " + names[shortcode]);
+
+            if (!shortcode)
+                return "Undetected";
+
+            return names[shortcode] ? names[shortcode] : "Unknown";
+        };
+
         self.getHardwareState = function() {
             $.ajax({
                 url: PLUGIN_URL + "hardware/state",

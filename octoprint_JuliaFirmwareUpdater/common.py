@@ -9,7 +9,7 @@ DATE_FMT_FIRMWARE = '%y%m%d_%H%M'
 DATE_FMT_REPO = '%Y-%m-%d %H:%M'
 
 PLUGINS = ["Julia2018AdvancedTouchUI", "Julia2018ExtendedTouchUI", "Julia2018ProSingleTouchUI", "Julia2018ProDualTouchUI"]
-VARIANTS = ["RX", "RE", "PS", "PD"]
+VARIANTS = ["RX", "RE", "PS", "PD", "PT", "PE"]
 
 
 class FlashException(Exception):

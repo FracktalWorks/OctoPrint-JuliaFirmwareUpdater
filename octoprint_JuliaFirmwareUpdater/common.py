@@ -8,7 +8,13 @@ STR_DEFAULT_DATETIME = '2018-01-01 00:00'
 DATE_FMT_FIRMWARE = '%y%m%d_%H%M'
 DATE_FMT_REPO = '%Y-%m-%d %H:%M'
 
-PLUGINS = ["Julia2018AdvancedTouchUI", "Julia2018ExtendedTouchUI", "Julia2018ProSingleTouchUI", "Julia2018ProDualTouchUI"]
+PLUGINS = ["Julia2018AdvancedTouchUI",
+           "Julia2018ExtendedTouchUI",
+           "Julia2018ProSingleTouchUI",
+           "Julia2018ProDualTouchUI",
+           "Julia2018ProSingleABLTouchUI",
+           "Julia2018ProDualABLTouchUI"
+           ]
 VARIANTS = ["RX", "RE", "PS", "PD", "PT", "PE"]
 
 

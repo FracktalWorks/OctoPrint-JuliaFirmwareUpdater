@@ -75,21 +75,23 @@ $(function() {
             }
         });
 
-        self.getBoardName = function(shortcode) {
-            var names = {
-                RX: "Julia Advanced",
-                RE: "Julia Extended",
-                PS: "Julia Pro Single",
-                PD: "Julia Pro Dual"
-            };
+        // self.getBoardName = function(shortcode) {
+        //     var names = {
+        //         RX: "Julia Advanced",
+        //         RE: "Julia Extended",
+        //         PS: "Julia Pro Single",
+        //         PD: "Julia Pro Dual",
+        //         PT: "Julia Pro Single ABL",
+        //         PE: "Julia Pro Dual ABL"
+        //     };
 
-            console.log(shortcode + " " + names[shortcode]);
+        //     console.log(shortcode + " " + names[shortcode]);
 
-            if (!shortcode)
-                return "Undetected";
+        //     if (!shortcode)
+        //         return "Undetected";
 
-            return names[shortcode] ? names[shortcode] : "Unknown";
-        };
+        //     return names[shortcode] ? names[shortcode] : "Unknown";
+        // };
 
         self.getHardwareState = function() {
             $.ajax({
@@ -377,6 +379,6 @@ $(function() {
     OCTOPRINT_VIEWMODELS.push([
         JuliaFirmwareUpdaterViewModel,
         ["settingsViewModel", "loginStateViewModel", "connectionViewModel", "printerStateViewModel"],
-        ["#settings_plugin_JuliaFirmwareUpdater"]
+        ["#settings_julia_firmware_updater"]
     ]);
 });

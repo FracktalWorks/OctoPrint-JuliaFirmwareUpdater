@@ -32,9 +32,34 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
                                  avrdude.Avrdude,
                                  bossac.Bossac,
                                  settings.Settings):
+
+    '''
+    Constants
+    '''
+    def get_board_name(self):
+        names = {
+            "RX": "Julia Advanced",
+            "RE": "Julia Extended",
+            "PS": "Julia Pro Single",
+            "PD": "Julia Pro Dual",
+            "PT": "Julia Pro Single ABL",
+            "PE": "Julia Pro Dual ABL"
+        }
+
+        if self.board_shortcode is None or self.board_shortcode not in names:
+            return None
+
+        return names[self.board_shortcode]
+
     '''
     IPC
     '''
+    @octoprint.plugin.BlueprintPlugin.route("/hardware/version", methods=["GET"])
+    def route_hardware_version(self):
+        return flask.jsonify(variant=self.board_shortcode, variant_name=self.get_board_name(),
+                             version_board=self.version_board, version_repo=self.version_repo,
+                             update_available=common.update_present(self.version_board, self.version_repo))
+
     @octoprint.plugin.BlueprintPlugin.route("/hardware/state", methods=["GET"])
     def route_hardware_state(self):
         port = self._get_hardware_port()
@@ -346,11 +371,16 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
             # self._logger.warning(self._update_start_inv(reflash=True))
 
     def get_assets(self):
-        return dict(js=["js/juliafirmwareupdater.js"])
+        return dict(js=["js/julia_firmware_updater.js"])
+
+    def get_template_vars(self):
+        name = self.get_board_name()
+        name = "Unknown" if name is None else name
+        return dict(variant=name)
 
     def get_template_configs(self):
         return [
-            dict(type="settings", custom_bindings=True)
+            dict(type="settings", custom_bindings=True, template="settings.jinja2")
         ]
 
     def get_settings_defaults(self):

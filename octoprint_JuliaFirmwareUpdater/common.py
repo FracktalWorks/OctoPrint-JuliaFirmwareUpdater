@@ -8,14 +8,34 @@ STR_DEFAULT_DATETIME = '2018-01-01 00:00'
 DATE_FMT_FIRMWARE = '%y%m%d_%H%M'
 DATE_FMT_REPO = '%Y-%m-%d %H:%M'
 
-PLUGINS = ["Julia2018AdvancedTouchUI",
-           "Julia2018ExtendedTouchUI",
-           "Julia2018ProSingleTouchUI",
-           "Julia2018ProDualTouchUI",
-           "Julia2018ProSingleABLTouchUI",
-           "Julia2018ProDualABLTouchUI"
-           ]
-VARIANTS = ["RX", "RE", "PS", "PD", "PT", "PE"]
+PLUGINS = [
+    "Julia2018AdvancedTouchUI",
+    "Julia2018ExtendedTouchUI",
+    "Julia2018ProSingleTouchUI",
+    "Julia2018ProDualTouchUI",
+    "Julia2018ProSingleABLTouchUI",
+    "Julia2018ProDualABLTouchUI"
+]
+VARIANTS = [
+    "RX",
+    "RE",
+    "PS",
+    "PD",
+    "PT",
+    "PE",
+    "PU",
+    "PF"
+]
+VARIANT_NAMES = {
+    "RX": "Julia Advanced",
+    "RE": "Julia Extended",
+    "PS": "Julia Pro Single",
+    "PD": "Julia Pro Dual",
+    "PT": "Julia Pro Single ABL",
+    "PE": "Julia Pro Dual ABL",
+    "PU": "Julia Pro Single ABL 24V",
+    "PF": "Julia Pro Dual ABL 24V",
+}
 
 
 class FlashException(Exception):

@@ -41,19 +41,10 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
     Constants
     '''
     def get_board_name(self):
-        names = {
-            "RX": "Julia Advanced",
-            "RE": "Julia Extended",
-            "PS": "Julia Pro Single",
-            "PD": "Julia Pro Dual",
-            "PT": "Julia Pro Single ABL",
-            "PE": "Julia Pro Dual ABL"
-        }
-
-        if self.board_shortcode is None or self.board_shortcode not in names:
+        if self.board_shortcode is None or self.board_shortcode not in common.VARIANT_NAMES:
             return None
 
-        return names[self.board_shortcode]
+        return common.VARIANT_NAMES[self.board_shortcode]
 
     '''
     IPC

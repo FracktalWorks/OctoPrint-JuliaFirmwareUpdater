@@ -23,6 +23,10 @@ from . import avrdude
 from . import bossac
 from . import settings
 
+from ._version import get_versions
+__version__ = get_versions()['version']
+del get_versions
+
 
 class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
                                  octoprint.plugin.TemplatePlugin,
@@ -429,6 +433,7 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
 
 
 __plugin_name__ = "Julia Firmware Updater"
+__plugin_version__ = __version__
 
 
 def __plugin_load__():

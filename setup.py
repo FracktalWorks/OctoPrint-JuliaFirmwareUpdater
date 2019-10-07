@@ -13,9 +13,6 @@ plugin_package = "octoprint_JuliaFirmwareUpdater"
 # plugin module
 plugin_name = "OctoPrint-JuliaFirmwareUpdater"
 
-# The plugin's version. Can be overwritten within OctoPrint's internal data via __plugin_version__ in the plugin module
-plugin_version = "1.0.1"
-
 # The plugin's description. Can be overwritten within OctoPrint's internal data via __plugin_description__ in the plugin
 # module
 plugin_description = """Fracktal Works Julia 3D Printer Firmware Updater"""
@@ -62,6 +59,7 @@ additional_setup_parameters = {}
 ########################################################################################################################
 
 from setuptools import setup
+import versioneer
 
 try:
 	import octoprint_setuptools
@@ -75,7 +73,8 @@ setup_parameters = octoprint_setuptools.create_plugin_setup_parameters(
 	identifier=plugin_identifier,
 	package=plugin_package,
 	name=plugin_name,
-	version=plugin_version,
+	version=versioneer.get_version(),
+	cmdclass=versioneer.get_cmdclass(),
 	description=plugin_description,
 	author=plugin_author,
 	mail=plugin_author_email,

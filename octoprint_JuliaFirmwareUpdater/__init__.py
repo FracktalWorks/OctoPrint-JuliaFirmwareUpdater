@@ -413,8 +413,8 @@ class JuliaFirmwareUpdaterPlugin(octoprint.plugin.BlueprintPlugin,
 
                 # version check: github repository
                 type="github_release",
-                user="OctoPrint",
-                repo="FracktalWorks/OctoPrint-JuliaFirmwareUpdater",
+                user="FracktalWorks",
+                repo="OctoPrint-JuliaFirmwareUpdater",
                 current=self._plugin_version,
 
                 # update method: pip

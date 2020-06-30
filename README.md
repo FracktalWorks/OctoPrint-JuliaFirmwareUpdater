@@ -11,7 +11,7 @@ Works with boards with Atmel AVR family 8-bit MCUs (Atmega1280, Atmega1284p, and
 Install via the bundled [Plugin Manager](https://github.com/foosel/OctoPrint/wiki/Plugin:-Plugin-Manager)
 or manually using this URL:
 
-    https://github.com/OctoPrint/OctoPrint-FirmwareUpdater/archive/master.zip
+    https://github.com/FracktalWorks/OctoPrint-FirmwareUpdater/archive/1.7.1.zip
 
 The appropriate flashing tool also needs to be installed.  For 8-bit MCUs the tools is **avrdude**, for 32-bit MCUs the tool is **bossac**.
 
